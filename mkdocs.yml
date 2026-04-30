@@ -7,13 +7,13 @@
 # ============================================================
 
 site_name: Mobile ALOHA × Isaac Sim 开发笔记
-site_description: 在 NVIDIA Isaac Sim 5.1 中搭建 Mobile ALOHA 双臂机器人,并通过 ROS2 Humble + MoveIt2 完成遥操作与自动 pick & place 的全过程记录。
+site_description: 在 NVIDIA Isaac Sim 5.1 中搭建 Mobile ALOHA 双臂机器人,并通过 ROS2 Humble + MoveIt2 完成遥操作、自动 pick & place 与场景资产生成的全过程记录。
 site_author: hello50505
 # site_url 等 GitBook 同步完成后再填(GitBook 会给一个公开 URL)
 # site_url: https://<gitbook-space>.gitbook.io/<book-slug>/
-repo_url: https://github.com/hello50505/spilit_aloha_Isaac-sim5.1_documents
-repo_name: hello50505/spilit_aloha_Isaac-sim5.1_documents
-edit_uri: edit/main/docs/
+# repo_url: 待补充
+# repo_name: 待补充
+# edit_uri: edit/main/docs/
 
 docs_dir: docs
 site_dir: site
@@ -116,9 +116,6 @@ plugins:
 # ------------------------------------------------------------
 extra:
   generator: false             # 隐藏 "Made with Material for MkDocs"
-  social:
-    - icon: fontawesome/brands/github
-      link: https://github.com/hello50505/spilit_aloha_Isaac-sim5.1_documents
 
 extra_css:
   - stylesheets/extra.css
@@ -136,6 +133,9 @@ nav:
       - ROS2 Humble Docker: setup/ros-humble-docker.md
       - 导入 URDF 到 Isaac Sim: setup/import-urdf.md
       - 导入真实相机模型: setup/import-camera.md
+  - 场景与资产:
+      - Aloha 蓝色 Grid 场景包: scene/scene-package.md
+      - 视频到 USD 场景: scene/video-to-usd.md
   - ROS2 集成:
       - 用 ROS2 控制底盘与关节: ros2-integration/control-via-ros2.md
       - 发布相机图像到 ROS2: ros2-integration/publish-camera-images.md

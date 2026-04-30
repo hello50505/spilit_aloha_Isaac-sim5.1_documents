@@ -8,7 +8,7 @@ hide:
 
 > 在 **NVIDIA Isaac Sim 5.1** 中搭建 Mobile ALOHA 双臂移动机器人,
 > 通过 **ROS2 Humble + MoveIt2 / TRAC-IK** 完成从 URDF 导入、相机
-> 集成、双臂遥操作,到自动 **pick & place** 的全过程记录。
+> 集成、双臂遥操作,到自动 **pick & place** 和场景资产生成的全过程记录。
 >
 > 这本"开发日记"的目标读者:**两个月后回来重新跑这套东西的自己**,
 > 以及任何想在 Isaac Sim 里复现 Mobile ALOHA 的同好。
@@ -43,6 +43,7 @@ hide:
 
     - 控制链路: [用 ROS2 控制](ros2-integration/control-via-ros2.md) → [末端位姿 IK](ros2-integration/ee-pose-ik.md) → [MoveIt2 + TRAC-IK](ros2-integration/moveit-trac-ik.md)
     - 感知链路: [导入相机](setup/import-camera.md) → [发布图像到 ROS2](ros2-integration/publish-camera-images.md)
+    - 场景资产: [场景包说明](scene/scene-package.md) → [视频到 USD 场景](scene/video-to-usd.md)
     - 调试: [遥操作](debugging/debug-teleop.md) · [RViz 可视化](debugging/visualize-rviz.md)
 
 -   :material-bug:{ .lg .middle } **遇到了问题**
@@ -95,4 +96,4 @@ hide:
 
 ## 反馈与贡献
 
-发现错别字 / 路径过期 / 想补一篇新坑?欢迎提 Issue 或 PR(GitHub 仓库地址将在代码开源后补上)。
+发现错别字 / 路径过期 / 想补一篇新坑?仓库公开后通过 Issue 或 PR 反馈。

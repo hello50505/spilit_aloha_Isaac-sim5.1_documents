@@ -8,7 +8,7 @@
 > 完成抓-放"打通后，下一轮再加录制层即可，schema 已对齐。
 
 写给"过两个月再来看"的自己：先看 §0 架构概览和 §6 一句话备忘，
-再按需翻 §1~§5 的细节。
+再按需翻 §1~§5 的细节；要加新任务跳到 §8。
 
 ---
 
@@ -130,6 +130,7 @@ flowchart LR
 | 字段 | 说明 |
 | --- | --- |
 | `task` | 唯一名称 |
+| `task_type` | 选哪条 motion sequence builder。默认 `pick_place`，加新动作见 §8.2 |
 | `scene` / `robot` | 引用 §3.1 / §3.2 中文件名（不含 `.yaml`） |
 | `arm` | `left` 或 `right`，决定 runner 命令哪条胳膊 |
 | `seed` | 默认 seed；可被启动器 `--seed` 和运行期 reset 消息覆盖 |
@@ -193,17 +194,46 @@ sequenceDiagram
 
 ## 5. 用户使用方式
 
-### 5.1 单次自动 pick-place（默认 seed 来自 yaml）
+### 5.0 清理（第一次跑、或上一轮没干净退出时）
 
-终端 A（宿主机）：
+之前的 docker 容器和 launch PID 文件残留会导致再次启动时打
+`Mobile ALOHA ROS2 control launch is already running`，先一键清掉：
+
+```bash
+docker rm -f isaac_ros2_humble 2>/dev/null
+rm -f /tmp/mobile_aloha_control.launch.pid 2>/dev/null
+```
+
+### 5.1 终端 A：宿主机 Isaac Sim
 
 ```bash
 cd ~/dataset/isaac-sim
 ./dev_ws/scripts/run_isaac_mobile_aloha.sh \
-    --task dev_ws/configs/tasks/pick_bottle_right.yaml --seed 42
+    --task dev_ws/configs/tasks/pick_bottle_right.yaml \
+    --seed 42
 ```
 
-终端 B（docker）：
+启动后 Isaac viewport 默认是空 stage，scene publisher 会周期性打：
+
+```text
+TaskScenePublisher: waiting for prim(s) ['/World/bottle_xpc'] to load before randomizing.
+```
+
+这是预期行为。**File → Open** 任务对应的 USD（这里是
+`assets/6_aloha_in_blue_grid_ROS.usda`）；当 `bottle_xpc` 出现在 stage 上，
+publisher 立即按 seed 改写 `xformOp:translate`，并打：
+
+```text
+TaskScenePublisher: randomized 2 objects with seed=42
+```
+
+这时点 viewport 上的 **▶ Play**。Isaac 不会替你自动 Play 第一次（避免
+抢走你"先看看场景"的窗口）；只有运行期 reset 触发的那次随机化会自动
+stop→play 一轮。
+
+### 5.2 终端 B：Docker ROS2 控制 + pick-place runner
+
+新开终端，**保持 Isaac 在 Play 状态**：
 
 ```bash
 cd ~/dataset/isaac-sim
@@ -213,34 +243,45 @@ cd ~/dataset/isaac-sim
     task_config:=/workspace/dev_ws/configs/tasks/pick_bottle_right.yaml
 ```
 
-第一次或者改了 launch / config 时加 `--build`；之后纯 Python 改动可以省。
+跑起来你应该看到（关键几行）：
 
-### 5.2 连续 N 个 episode（每次换 seed 自动 reset）
-
-终端 B 改成：
-
-```bash
-./dev_ws/scripts/run_ros2_humble_docker.sh --launch-control -- \
-    start_debug_teleop:=false \
-    start_pick_place_task:=true \
-    task_config:=/workspace/dev_ws/configs/tasks/pick_bottle_right.yaml \
-    pick_place_loop:=true \
-    pick_place_reseed_each_episode:=true
+```text
+[move_group-1] You can start planning now!
+[ee_pose_ik_controller-5] READY left IK (moveit): ...
+[ee_pose_ik_controller-6] READY right IK (moveit): ...
+[real_ee_pose_publisher-4] READY real EE pose publisher: ...
+[pick_place_runner-...] pick_place_runner ready: task=pick_bottle_right.yaml arm=right ...
+[pick_place_runner-...] Episode 1 planned with 10 steps.
+[pick_place_runner-...] step 1/10: open gripper
+[pick_place_runner-...] step 2/10: move to pre-grasp
+...
 ```
 
-终端 A 不变。runner 完成一轮后会发 `/scene/reset_episode_request`，
-Isaac 那侧 stop → 新 seed 改 translate → play，runner 收到
-`/scene/reset_episode_response` 后开始下一轮。Ctrl-C runner 退出循环。
+第一次或者改了 launch / config 时加 `--build`；之后纯 Python 改动可以省。
 
-### 5.3 切左臂
+### 5.3 想换玩法时
 
-终端 A `--task dev_ws/configs/tasks/pick_bottle_left.yaml`，
-终端 B 把 `task_config:=` 同步改成对应 yaml，其他不变。
+| 需求 | 改终端 A | 改终端 B |
+| --- | --- | --- |
+| 换 seed | `--seed 7` | （不动） |
+| 切左臂 | `--task dev_ws/configs/tasks/pick_bottle_left.yaml` | `task_config:=/workspace/dev_ws/configs/tasks/pick_bottle_left.yaml` |
+| 连续跑、每次新 seed | （不动） | 末尾加 `pick_place_loop:=true pick_place_reseed_each_episode:=true` |
+| 只看不发命令 | （不动） | 末尾加 `pick_place_dry_run:=true` |
+| 自定义 yaml 路径 | `--task /abs/path.yaml` | `task_config:=/abs/path.yaml`（容器视角的绝对路径） |
 
-### 5.4 让某个步骤"先看看会发什么"
+> loop 模式下 runner 完成一轮发 `/scene/reset_episode_request`，
+> Isaac 侧 stop → 新 seed 改 translate → play，runner 收到
+> `/scene/reset_episode_response` 后再跑下一轮。Ctrl-C runner 退出循环。
 
-终端 B 加 `pick_place_dry_run:=true`，runner 会算所有目标点和夹爪命令
-但不真的发布；用来验证 yaml 写得对不对。
+### 5.4 偷懒办法
+
+```bash
+cd ~/dataset/isaac-sim
+./dev_ws/scripts/run_pick_place_task.sh --task pick_bottle_right --seed 42
+```
+
+会把上面两条终端命令直接 echo 出来；加 `--run-isaac` 会在当前终端直接
+exec 终端 A 那条。
 
 ### 5.5 退化用法（不开任务，只想要原来那套）
 
@@ -279,7 +320,7 @@ Isaac 那侧 stop → 新 seed 改 translate → play，runner 收到
 | --- | --- |
 | runner 一直打 `Waiting for /tf world -> (bottle, place_zone)` | Isaac 没传 `--task`，scene publisher 没起。检查 Isaac 启动日志里是否有 `TaskScenePublisher loaded task=...` |
 | runner 打 `Waiting for current TCP feedback on /<side>_ee_current_pose_in_world` | Isaac 还没 Play，或者 TF `world -> base_link` 没出来。回 17 章 §5 跑 `ros2 topic echo /tf --once`，确认 `world -> base_link` 存在 |
-| 物体位置看着没动 | 1) Isaac 要先 Play 才能让 PhysX 接管 translate（实际我们在 stop 状态写、play 时初始化位姿，所以建议每次启动先 Stop 再 Play 一次）；2) yaml 的 `objects[].prim` 路径写错；3) 同一个 USD 没重新打开（如果你自己拖动过 bottle，stage 里的本地编辑会覆盖我们的写） |
+| 物体位置看着没动 | 1) 没打开任务对应的 USD —— scene publisher 会周期性提示 `waiting for prim(s) [...]`，看到这条说明随机化还没跑；2) yaml 的 `objects[].prim` 路径写错；3) 同一个 USD 没重新打开（如果你自己拖动过 bottle，stage 里的本地编辑会覆盖我们的写） |
 | `ik_failed` / 长时间不动 | 抽样到的 grasp 点超出工作空间。把 `objects[].randomize.{x,y}` 收紧，或者调 `approach.target_orientation_wxyz` |
 | 左臂任务长时间 `ik_failed` | `pick_bottle_left.yaml` 里的 Y 范围是基于"机器人在世界 Y≈-0.862"的镜像估算，不一定完全准。先用 SpaceMouse / RViz marker 找一个左臂确实可达的点，再回头收紧 yaml 里的 randomize 范围 |
 | Reset 之后瓶子飞走 / 弹起 | PhysX 在 play 时拿到一个 penetrate 的初始位姿。把 `objects[].randomize.z` 拉高 1~2cm 让物体先落到桌面 |
@@ -288,7 +329,120 @@ Isaac 那侧 stop → 新 seed 改 translate → play，runner 收到
 
 ---
 
-## 8. 后续 TODO（不在本轮）
+## 8. 如何自定义任务的完成逻辑
+
+把"任务"分两层看，定制起来要去的文件不同：
+
+### 8.1 仅调整参数（不需要写代码）
+
+下面这些**纯改 yaml 就够**，runner 行为按你给的参数走：
+
+| 想改的东西 | yaml 字段 | 文件 |
+| --- | --- | --- |
+| 物体随机化范围 / 是否固定 | `objects[].randomize.{x,y,z,yaw}` | `configs/tasks/<task>.yaml` |
+| 手腕姿态 | `approach.target_orientation_wxyz` | 同上 |
+| 抓取 / 接近 / 抬起 / 放置 / 后撤偏移 | `approach.{pre_grasp,approach,grasp,place,retreat}_offset_xyz` + `approach.lift_height_m` | 同上 |
+| 单步超时 / 容差 / 设定时间 | `tolerance.*` | 同上 |
+| 夹爪开合行程 | `gripper.{open_m, closed_m}` | 同上 |
+| 用左臂还是右臂 | `arm: left|right` | 同上 |
+| 跟踪哪个新物体 | 在 `objects:` 里加一项，`name` 是 TF 子坐标系名，`prim` 指向 USD prim 路径（虚拟点设 `virtual: true`） | 同上 |
+
+> Schema 字段含义见 §3.3。`pick_bottle_right.yaml` 和
+> `pick_bottle_left.yaml` 是两个对称的工作示例，照着抄就行。
+
+### 8.2 改动作流程本身（要写一点 Python）
+
+motion sequence（pre-grasp → approach → grasp → close → lift → place →
+…）是**写在 `pick_place_runner.py` (`dev_ws/ros2_ws/src/mobile_aloha_isaac_control/mobile_aloha_isaac_control/pick_place_runner.py`) 的**，
+不是 yaml 能描述的。要做"倒水"、"双臂交接"、"塞抽屉"这种新动作，
+按下面四步：
+
+**Step 1** —— 在 task yaml 里声明新类型：
+
+```yaml
+task: pour_water_right
+task_type: pour          # <-- 新增字段；不写默认是 pick_place
+arm: right
+objects:
+  - { name: bottle, prim: /World/bottle_xpc, randomize: {...} }
+  - { name: cup,    prim: /World/cup,        randomize: {...} }
+approach:
+  # 你这条流程需要的偏移量随便加，命名约定自己定
+  pour_pre_offset_xyz: [0.0, 0.0, 0.20]
+  pour_tilt_offset_xyz: [0.05, 0.0, 0.18]
+  ...
+```
+
+**Step 2** —— 在 `pick_place_runner.py` (`dev_ws/ros2_ws/src/mobile_aloha_isaac_control/mobile_aloha_isaac_control/pick_place_runner.py`) 里写一个 builder 方法：
+
+```python
+def _compute_steps_pour(self) -> Optional[List[_Step]]:
+    bottle_pose = self._lookup_object("bottle")
+    cup_pose = self._lookup_object("cup")
+    if bottle_pose is None or cup_pose is None:
+        return None  # 让 runner 下一拍再试，不要写死等待逻辑
+
+    raw = self._raw_task_cfg.get("approach") or {}
+    pour_pre = self._add(cup_pose, raw["pour_pre_offset_xyz"])
+    pour_tilt = self._add(cup_pose, raw["pour_tilt_offset_xyz"])
+
+    return [
+        _Step("open gripper", gripper="open",
+              settle_s=self._tolerance.settle_s),
+        _Step("grasp bottle",
+              pose_xyz=self._add(bottle_pose, self._approach.grasp_offset_xyz)),
+        _Step("close gripper", gripper="closed",
+              settle_s=self._tolerance.settle_s),
+        _Step("move above cup", pose_xyz=pour_pre),
+        _Step("tilt to pour",   pose_xyz=pour_tilt),
+        # ...
+    ]
+```
+
+每个 `_Step` 只能是两种之一：
+
+| 类型 | 字段 | 含义 |
+| --- | --- | --- |
+| Cartesian 目标 | `pose_xyz`（world 系 xyz，姿态由 `approach.target_orientation_wxyz` 决定）| runner 发 `PoseStamped` 到 `/<side>_ee_target_pose`，等 `/<side>_ee_current_pose_in_world` 距离收敛或超时 |
+| 夹爪命令 | `gripper="open"\|"closed"` + `settle_s` | runner 发 `JointState` 到 `/isaac_joint_commands`，等 `settle_s` 秒后下一步 |
+
+**Step 3** —— 注册到 `_step_builders`：
+
+```python
+def _step_builders(self):
+    return {
+        "pick_place": self._compute_steps_pick_place,
+        "pour":       self._compute_steps_pour,    # <-- 新增
+    }
+```
+
+**Step 4** —— `colcon build --packages-select mobile_aloha_isaac_control`
+（或在终端 B 加 `--build`），重新跑：
+
+```bash
+./dev_ws/scripts/run_ros2_humble_docker.sh --build --launch-control -- \
+    start_debug_teleop:=false start_pick_place_task:=true \
+    task_config:=/workspace/dev_ws/configs/tasks/pour_water_right.yaml
+```
+
+整个流程**不用动 Isaac 侧的 scene publisher**——它只负责按 yaml 里
+`objects[]` 的 prim 路径广播 TF，逻辑层完全不感知"任务类型"。
+
+### 8.3 想加成功判定 / 失败判定
+
+目前 runner 只看"是否到达每个目标点 + 步骤超时"。如果你要"瓶子最后
+是不是真的进托盘了"这种判定，建议在 `_on_episode_complete()` 里：
+
+1. `self._lookup_object("bottle")` 拿瓶子最终位姿；
+2. 跟 `self._lookup_object("place_zone")` 比距离；
+3. 距离 < 阈值 → 记成功，否则失败；
+4. 把 `success` 写进 episode 日志，loop 模式下顺便用来决定要不要保留这一轮的数据（数据采集层接进来之后）。
+
+这块代码暂时没写，先留着 §9 的 TODO 里。
+
+---
+
+## 9. 后续 TODO（不在本轮）
 
 1. **数据采集层**：在 `pick_place_runner` 完成一个 episode 时同步 dump
    `images/` + `joint_states/` + `tcp_pose/` 到 HDF5（或 LeRobot 格式）。

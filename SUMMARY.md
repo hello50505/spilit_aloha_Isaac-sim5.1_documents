@@ -13,6 +13,11 @@
 * [导入 URDF 到 Isaac Sim](docs/setup/import-urdf.md)
 * [导入真实相机模型](docs/setup/import-camera.md)
 
+## 场景与资产
+
+* [Aloha 蓝色 Grid 场景包](docs/scene/scene-package.md)
+* [视频到 USD 场景](docs/scene/video-to-usd.md)
+
 ## ROS2 集成
 
 * [用 ROS2 控制底盘与关节](docs/ros2-integration/control-via-ros2.md)
