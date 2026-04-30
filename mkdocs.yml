@@ -1,0 +1,155 @@
+# ============================================================
+# MkDocs 主配置 — Mobile ALOHA × Isaac Sim × ROS2 Humble
+# ============================================================
+# 本地预览:   mkdocs serve     (默认 http://127.0.0.1:8000)
+# 静态构建:   mkdocs build     (产物在 ./site/)
+# 部署 Pages: mkdocs gh-deploy (推送到 gh-pages 分支)
+# ============================================================
+
+site_name: Mobile ALOHA × Isaac Sim 开发笔记
+site_description: 在 NVIDIA Isaac Sim 5.1 中搭建 Mobile ALOHA 双臂机器人,并通过 ROS2 Humble + MoveIt2 完成遥操作与自动 pick & place 的全过程记录。
+site_author: hello50505
+# site_url 等 GitBook 同步完成后再填(GitBook 会给一个公开 URL)
+# site_url: https://<gitbook-space>.gitbook.io/<book-slug>/
+repo_url: https://github.com/hello50505/spilit_aloha_Isaac-sim5.1_documents
+repo_name: hello50505/spilit_aloha_Isaac-sim5.1_documents
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+# ------------------------------------------------------------
+# 主题
+# ------------------------------------------------------------
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.instant       # SPA 式跳转,加载更快
+    - navigation.tracking      # URL 跟随章节锚点
+    - navigation.tabs          # 顶部一级 tab 栏
+    - navigation.sections      # 侧边栏二级折叠
+    - navigation.indexes       # 章节根页面 index.md
+    - navigation.top           # 回到顶部按钮
+    - navigation.footer        # 上一页 / 下一页
+    - toc.follow               # 右侧目录跟随滚动
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy        # 代码块一键复制
+    - content.code.annotate    # 代码内注解
+    - content.tabs.link        # 标签页全局联动
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: 切换到深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: 切换到浅色模式
+  font:
+    text: Noto Sans SC
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+
+# ------------------------------------------------------------
+# Markdown 扩展(代码高亮 / Mermaid / 提示框 / 数学等)
+# ------------------------------------------------------------
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.smartsymbols
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+# ------------------------------------------------------------
+# 插件
+# ------------------------------------------------------------
+plugins:
+  - search:
+      lang:
+        - zh
+        - en
+  - tags
+
+# ------------------------------------------------------------
+# 额外资源
+# ------------------------------------------------------------
+extra:
+  generator: false             # 隐藏 "Made with Material for MkDocs"
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/hello50505/spilit_aloha_Isaac-sim5.1_documents
+
+extra_css:
+  - stylesheets/extra.css
+
+# ------------------------------------------------------------
+# 侧边栏目录(GitBook 风格)
+# 顺序刻意贴近开发时间线:架构 → 启动 → 环境 → ROS2 → 调试 → 数采
+# ------------------------------------------------------------
+nav:
+  - 首页: index.md
+  - 概览:
+      - 项目架构: overview/architecture.md
+      - 快速启动(必读): overview/quickstart.md
+  - 环境与导入:
+      - ROS2 Humble Docker: setup/ros-humble-docker.md
+      - 导入 URDF 到 Isaac Sim: setup/import-urdf.md
+      - 导入真实相机模型: setup/import-camera.md
+  - ROS2 集成:
+      - 用 ROS2 控制底盘与关节: ros2-integration/control-via-ros2.md
+      - 发布相机图像到 ROS2: ros2-integration/publish-camera-images.md
+      - 末端位姿 IK 控制: ros2-integration/ee-pose-ik.md
+      - 发布真实末端位姿: ros2-integration/publish-real-ee-pose.md
+      - MoveIt2 + TRAC-IK 替换 cuRobo: ros2-integration/moveit-trac-ik.md
+  - 调试与可视化:
+      - 红色方块调试 IK: debugging/debug-ik-marker.md
+      - 键盘 + SpaceMouse 遥操作: debugging/debug-teleop.md
+      - 键盘关节/底盘综合调试: debugging/debug-joint-control.md
+      - 在 RViz 中可视化机器人: debugging/visualize-rviz.md
+      - 右臂抓瓶碰撞调试: debugging/debug-collision.md
+      - 给瓶子和夹爪加摩擦: debugging/add-friction.md
+      - 升降台幽灵碰撞排查: debugging/debug-ghost-collision.md
+      - cuRobo IK "无解" 排查: debugging/debug-curobo-ik.md
+  - 自动化与数采:
+      - 自动 pick & place: data-collection/auto-pick-place.md

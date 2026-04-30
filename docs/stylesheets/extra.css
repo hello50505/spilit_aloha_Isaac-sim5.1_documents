@@ -1,0 +1,44 @@
+/* 自定义样式:让中文阅读更舒适 */
+
+:root {
+  --md-text-font: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --md-code-font: "JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace;
+}
+
+/* 正文行距更宽松,中英文混排好看 */
+.md-typeset {
+  line-height: 1.75;
+  font-size: 0.85rem;
+}
+
+/* 标题在中文环境中需要点呼吸感 */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  letter-spacing: 0.01em;
+}
+
+.md-typeset h2 {
+  margin-top: 2em;
+}
+
+/* 代码块内中文与代码混排时不要被截断 */
+.md-typeset pre code {
+  white-space: pre;
+}
+
+/* 表格在窄屏滚动 */
+.md-typeset table:not([class]) {
+  font-size: 0.78rem;
+}
+
+/* 提示框 */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 6px;
+}
+
+/* mermaid 图居中 */
+.md-typeset .mermaid {
+  text-align: center;
+}
